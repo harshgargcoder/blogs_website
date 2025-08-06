@@ -1,55 +1,59 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { 
-  collection, query, where, getDocs, 
-  addDoc, doc, updateDoc, deleteDoc 
-} from 'firebase/firestore';
-import { db } from '../firebase';
-import RichTextEditor from '../components/RichTextEditor';
-import CategorySelector from '../components/CategorySelector';
+import { useState, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  addDoc,
+  doc,
+  updateDoc,
+  deleteDoc,
+} from "firebase/firestore";
+import { db } from "../firebase";
+import RichTextEditor from "../components/RichTextEditor";
+import CategorySelector from "../components/CategorySelector";
 
 export default function Dashboard() {
   const { currentUser } = useAuth();
   const [posts, setPosts] = useState([]);
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Move fetchPosts outside useEffect so it can be used elsewhere
-  const fetchPosts = async () => {
-    const q = query(collection(db, 'posts'), 
-      where('author', '==', currentUser.email));
-    const querySnapshot = await getDocs(q);
-    const postsData = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-    setPosts(postsData);
-  };
-
   useEffect(() => {
+    const fetchPosts = async () => {
+      const q = query(
+        collection(db, "posts"),
+        where("author", "==", currentUser.email)
+      );
+      const querySnapshot = await getDocs(q);
+      const postsData = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setPosts(postsData);
+    };
     fetchPosts();
   }, [currentUser]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    
+
     try {
       if (editingId) {
-        // Update existing post
-        await updateDoc(doc(db, 'posts', editingId), {
+        await updateDoc(doc(db, "posts", editingId), {
           title,
           content,
           categories: selectedCategories,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         });
         setEditingId(null);
       } else {
-        // Create new post
-        await addDoc(collection(db, 'posts'), {
+        await addDoc(collection(db, "posts"), {
           title,
           content,
           author: currentUser.email,
@@ -57,37 +61,48 @@ export default function Dashboard() {
           createdAt: new Date(),
           updatedAt: new Date(),
           likesCount: 0,
-          likedBy: []
+          likedBy: [],
         });
       }
-      
-      // Reset form and refresh posts
-      setTitle('');
-      setContent('');
+
+      setTitle("");
+      setTitle("");
+      setContent("");
       setSelectedCategories([]);
-      fetchPosts();
+
+      if (currentUser) {
+        const q = query(
+          collection(db, "posts"),
+          where("author", "==", currentUser.email)
+        );
+        const querySnapshot = await getDocs(q);
+        const postsData = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setPosts(postsData);
+      }
     } catch (error) {
-      console.error('Error:', error);
+      console.error("Error:", error);
     } finally {
       setLoading(false);
     }
   };
-
   const handleEdit = (post) => {
     setTitle(post.title);
     setContent(post.content);
     setSelectedCategories(post.categories || []);
     setEditingId(post.id);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleDelete = async (postId) => {
-    if (window.confirm('Are you sure you want to delete this post?')) {
+    if (window.confirm("Are you sure you want to delete this post?")) {
       try {
-        await deleteDoc(doc(db, 'posts', postId));
-        setPosts(posts.filter(post => post.id !== postId));
+        await deleteDoc(doc(db, "posts", postId));
+        setPosts(posts.filter((post) => post.id !== postId));
       } catch (error) {
-        console.error('Error deleting post:', error);
+        console.error("Error deleting post:", error);
       }
     }
   };
@@ -95,10 +110,10 @@ export default function Dashboard() {
   return (
     <div className="max-w-4xl mx-auto py-8 px-4">
       <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
-      
+
       <div className="bg-white rounded-lg shadow-md p-6 mb-8">
         <h2 className="text-xl font-semibold mb-4">
-          {editingId ? 'Edit Post' : 'Create New Post'}
+          {editingId ? "Edit Post" : "Create New Post"}
         </h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -111,28 +126,28 @@ export default function Dashboard() {
               required
             />
           </div>
-          
+
           <div>
             <label className="block text-gray-700 mb-2">Content</label>
-            <RichTextEditor 
-              content={content} 
-              onChange={(html) => setContent(html)} 
+            <RichTextEditor
+              content={content}
+              onChange={(html) => setContent(html)}
             />
           </div>
-          
-          <CategorySelector 
+
+          <CategorySelector
             selectedCategories={selectedCategories}
             onChange={setSelectedCategories}
           />
-          
+
           <div className="flex justify-end space-x-4">
             {editingId && (
               <button
                 type="button"
                 onClick={() => {
                   setEditingId(null);
-                  setTitle('');
-                  setContent('');
+                  setTitle("");
+                  setContent("");
                   setSelectedCategories([]);
                 }}
                 className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
@@ -145,7 +160,7 @@ export default function Dashboard() {
               disabled={loading}
               className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
             >
-              {loading ? 'Saving...' : (editingId ? 'Update' : 'Publish')}
+              {loading ? "Saving..." : editingId ? "Update" : "Publish"}
             </button>
           </div>
         </form>
@@ -155,7 +170,7 @@ export default function Dashboard() {
         <h2 className="text-xl font-semibold mb-4">Your Posts</h2>
         {posts.length > 0 ? (
           <div className="space-y-6">
-            {posts.map(post => (
+            {posts.map((post) => (
               <div key={post.id} className="bg-white p-6 rounded-lg shadow">
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="text-lg font-medium">{post.title}</h3>
@@ -177,10 +192,14 @@ export default function Dashboard() {
                 <div className="text-sm text-gray-500 mb-4">
                   Created: {new Date(post.createdAt?.toDate()).toLocaleString()}
                   {post.updatedAt && (
-                    <span> • Updated: {new Date(post.updatedAt?.toDate()).toLocaleString()}</span>
+                    <span>
+                      {" "}
+                      • Updated:{" "}
+                      {new Date(post.updatedAt?.toDate()).toLocaleString()}
+                    </span>
                   )}
                 </div>
-                <div 
+                <div
                   className="text-gray-700 mb-4 line-clamp-3"
                   dangerouslySetInnerHTML={{ __html: post.content }}
                 />
@@ -188,8 +207,8 @@ export default function Dashboard() {
                   <span className="text-sm text-gray-500">
                     {post.likesCount || 0} likes
                   </span>
-                  <a 
-                    href={`/post/${post.id}`} 
+                  <a
+                    href={`/post/${post.id}`}
                     className="text-blue-600 hover:text-blue-800 text-sm"
                   >
                     View Post
